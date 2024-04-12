@@ -3,22 +3,30 @@ A maintained swift client for interacting with a [nats](http://nats.io) server b
 
 ![SwiftyNats Logo](./Resources/Logo@256.png)
 
-Tested with Swift 5.4 on [![macos](https://github.com/aus-der-Technik/swifty-nats/actions/workflows/macos.yml/badge.svg?branch=main)](https://github.com/aus-der-Technik/swifty-nats/actions/workflows/macos.yml) and [![Linux](https://github.com/aus-der-Technik/swifty-nats/actions/workflows/linux.yml/badge.svg?branch=main)](https://github.com/aus-der-Technik/swifty-nats/actions/workflows/linux.yml)
+Tested with Swift 5.7 on [![macos](https://github.com/ddh4r4m/swifty-nats/actions/workflows/macos.yml/badge.svg?branch=main)](https://github.com/ddh4r4m/swifty-nats/actions/workflows/macos.yml)
 
-Swift Version Compatibility: [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Faus-der-Technik%2Fswifty-nats%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/aus-der-Technik/swifty-nats)
+Swift Version Compatibility: [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Faus-der-Technik%2Fswifty-nats%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/ddh4r4m/swifty-nats)
 
-Platform Compatibility: [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Faus-der-Technik%2Fswifty-nats%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/aus-der-Technik/swifty-nats)
+Platform Compatibility: [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Faus-der-Technik%2Fswifty-nats%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/ddh4r4m/swifty-nats)
 
 ## Support
 Join the [#swift](https://natsio.slack.com/archives/C02D41BU0PQ) channel on nats.io Slack. 
 We'll do our best to help quickly. You can also just drop by and say hello. We're looking forward to developing the community. 
+
+## Instsllation via CocoaPods
+```yml
+target 'xcodeSample' do
+  # Pods for xcodeSample
+  pod 'SwiftyNats'
+end
+```
 
 ## Installation via Swift Package Manager
 ### In Package.swift
 Add this packages as a dependency in your projects `Package.swift` file and add the Name to your target like shown in this example:
 
 ```swift
-// swift-tools-version:5.4
+// swift-tools-version:5.7
 
 import PackageDescription
 
@@ -28,7 +36,7 @@ let package = Package(
         .executable(name: "YourApp", targets: ["YourApp"]),
     ],
     dependencies: [
-        .package(name: "SwiftyNats", url: "https://github.com/aus-der-technik/SwiftyNats.git", from: "2.2.0")
+        .package(name: "SwiftyNats", url: "https://github.com/ddh4r4m/SwiftyNats.git", from: "2.2.0")
     ],
     targets: [
         .target(
@@ -41,34 +49,32 @@ let package = Package(
 ```
 ### In an .xcodeproj
 Open the project inspector in XCode and select your project. It is importent to select the **project** and not a target! 
-Klick on the third tab `Package Dependencies` and add the git url `https://github.com/aus-der-technik/SwiftyNats.git` by selecting the litte `+`-sign at the end of the package list.  
+Klick on the third tab `Package Dependencies` and add the git url `https://github.com/ddh4r4m/SwiftyNats.git` by selecting the litte `+`-sign at the end of the package list.  
 
 
 ## Basic Usage
 ```swift
 
 import SwiftyNats
+    // register a new client
+    let client = NatsClient("nats://192.168.1.2:4222")
 
-// register a new client
-let client = NatsClient("http://nats.server:4222")
+    // listen to an event
+    client.on(.connected) { _ in
+        print("Client connected")
+    }
 
-// listen to an event
-client.on(.connect) { _ in
-    print("Client connected")
-}
+    // try to connect to the server
+    try? client.connect()
+    
+    client.subscribe(to: "foo.updates") { message in
+        print("payload: \(message.payload)")
+        print("size: \(message.byteCount)")
+        print("reply subject: \(message.replySubject?.subject)")
+    }
 
-// try to connect to the server 
-try? client.connect()
-
-// subscribe to a channel with a inline message handler. 
-client.subscribe("foo.bar") { message in
-    print("payload: \(message.payload)")
-    print("size: \(message.byteCount)")
-    print("reply subject: \(message.replySubject.subject)")
-}
-
-// publish an event onto the message strem into a subject
-client.publish("this event happened", to: "foo.bar")
+    // publish an event onto the message strem into a subject
+    client.publish("this event happened", to: "foo.updates")
 
 ```
 
@@ -78,7 +84,7 @@ The default loglevel is `.error`. You can reset it to see more verbose messages.
 Values are `.debug`, `.info`, `.error` or `.critical`
 
 ```swift
-let client = NatsClient("http://nats.server:4222")
+let client = NatsClient("nats://192.168.1.2:4222")
 client.config.loglevel = .info
 ```
 
@@ -114,15 +120,15 @@ private func doSubscribe(){
 ### List of events
 The public class `NatsEvent` contains all events you can subscribt to.
 
-| event        | description                                                            |
-| ------------ | ---------------------------------------------------------------------- |
-| connected    | The client is conected to the server.                                  | 
-| disconnected | The client disconnects and was connectd before.                        | 
-| response     | The client gets an response from the server (internal).                |
-| error        | The server sends an error that can't be handled.                       |
-| dropped      | The clients droped a message. Mostly because of queue length to short. | 
-| reconnecting | The client reconencts to the server, (Because of a called reconnect()).|
-| informed     | The server sends his information data successfully to the client.      |
+| event        | description                                                             |
+| ------------ | ----------------------------------------------------------------------- |
+| connected    | The client is conected to the server.                                   |
+| disconnected | The client disconnects and was connectd before.                         |
+| response     | The client gets an response from the server (internal).                 |
+| error        | The server sends an error that can't be handled.                        |
+| dropped      | The clients droped a message. Mostly because of queue length to short.  |
+| reconnecting | The client reconencts to the server, (Because of a called reconnect()). |
+| informed     | The server sends his information data successfully to the client.       |
 
 
 ### Information about the connected server
